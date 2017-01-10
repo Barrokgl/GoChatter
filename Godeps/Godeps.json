@@ -1,0 +1,12 @@
+{
+	"ImportPath": "github.com/Barrokgl/GoChatter",
+	"GoVersion": "go1.7",
+	"GodepVersion": "v75",
+	"Deps": [
+		{
+			"ImportPath": "github.com/gorilla/websocket",
+			"Comment": "v1.1.0-6-gadf16b3",
+			"Rev": "adf16b31781325cbd41085c5be901d95b4d1f33d"
+		}
+	]
+}
