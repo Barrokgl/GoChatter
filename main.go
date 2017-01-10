@@ -4,12 +4,18 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/gorilla/websocket"
 )
 
 func main() {
-	port := ":8000"
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = ":8000"
+	} else {
+		port = ":" + port
+	}
 	log.Print("Starting server on port: ", port)
 
 	http.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {
