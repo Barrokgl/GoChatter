@@ -1,1 +1,1 @@
-web: go-chatter
+web: GoChatter
