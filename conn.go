@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/gorilla/websocket"
+	"log"
 )
 
 type User struct {
@@ -16,10 +17,10 @@ type client struct {
 	send chan []byte
 }
 
-func (c *client) read() {
+func (c *client) read(logger *log.Logger) {
 	for {
 		if msgT, msg, err := c.wsConn.ReadMessage(); err == nil {
-			Logger.Println("reading msg: ", string(msg)," " ,msgT)
+			logger.Println("reading msg: ", string(msg)," " ,msgT)
 			c.chat.forward <- msg
 		} else {
 			break
@@ -28,9 +29,9 @@ func (c *client) read() {
 	c.wsConn.Close()
 }
 
-func (c *client) write() {
+func (c *client) write(logger *log.Logger) {
 	for msg := range c.send {
-		Logger.Println("writing msg: ", string(msg))
+		logger.Println("writing msg: ", string(msg))
 		if err := c.wsConn.WriteMessage(websocket.TextMessage, msg); err != nil {
 			break
 		}

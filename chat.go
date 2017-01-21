@@ -3,6 +3,7 @@ package main
 import (
 	"math/rand"
 	"strconv"
+	"log"
 )
 
 var (
@@ -18,7 +19,7 @@ type chat struct {
 	leave     chan *client
 }
 
-func (c *chat) Run() {
+func (c *chat) Run(logger *log.Logger) {
 	for {
 		select {
 		case ch := <-c.forward:
@@ -31,10 +32,10 @@ func (c *chat) Run() {
 				}
 			}
 		case ch := <-c.join:
-			Logger.Println("user join: ", ch.Username)
+			logger.Println("user join: ", ch.Username)
 			c.userConns[ch] = true
 		case ch := <-c.leave:
-			Logger.Println("user leave: ", ch.Username)
+			logger.Println("user leave: ", ch.Username)
 			delete(c.userConns, ch)
 			close(ch.send)
 		}
@@ -55,7 +56,7 @@ func NewChat(name string) *chat {
 	}
 	chatCounts++
 	AllChats[name] = chat
-	Logger.Println("Creating chat: ", name)
+	log.Println("Creating chat: ", name)
 	return chat
 }
 

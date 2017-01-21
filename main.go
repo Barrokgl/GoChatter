@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -9,25 +8,16 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-func main() {
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = ":8000"
-	} else {
-		port = ":" + port
-	}
-	log.Print("Starting server on port: ", port)
+var (
+	Chatter = NewChat("gopher")
+	Logger = log.New(os.Stdout, "[goChatter]: ", log.Ldate|log.Ltime|log.Lshortfile)
+)
 
+func init() {
 	http.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {
-		fmt.Fprint(w, "Awesome chat server based on go!")
+		w.Write([]byte("Awesome chat server based on go!"))
 	})
 	http.HandleFunc("/ws", wsHandler)
-
-	err := http.ListenAndServe(port, nil)
-	if err != nil {
-		log.Fatal(err)
-		panic(err)
-	}
 }
 
 func wsHandler(w http.ResponseWriter, r *http.Request) {
@@ -38,15 +28,42 @@ func wsHandler(w http.ResponseWriter, r *http.Request) {
 	} else if err != nil {
 		return
 	}
-	defer ws.Close()
-	for {
-		messageType, p, err := ws.ReadMessage()
-		if err != nil {
-			panic(err)
+
+	usr := &User{
+		Login:"userlogin",
+		Username:"username",
+	}
+	cli := &client{
+		wsConn: ws,
+		User: usr,
+		chat: Chatter,
+		send: make(chan []byte, 100),
+	}
+	cli.chat.join <- cli
+	go cli.read(Logger)
+	go cli.write(Logger)
+}
+
+func main() {
+	// error recover
+	defer func() {
+		if r := recover(); r != nil {
+			Logger.Fatalln(r)
 		}
-		if err = ws.WriteMessage(messageType, p); err != nil {
-			panic(err)
-		}
-		println("Data incoming: ", messageType, p)
+	}()
+
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = ":8080"
+	} else {
+		port = ":" + port
+	}
+	Logger.Print("Starting server on port: ", port)
+
+	go Chatter.Run(Logger)
+
+	err := http.ListenAndServe(port, nil)
+	if err != nil {
+		panic(err)
 	}
 }
