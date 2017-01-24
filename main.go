@@ -9,7 +9,7 @@ import (
 )
 
 var (
-	Chatter = NewChat("gopher")
+	Chatter = NewChat("public")
 	Logger = log.New(os.Stdout, "[goChatter]: ", log.Ldate|log.Ltime|log.Lshortfile)
 )
 
@@ -17,10 +17,23 @@ func init() {
 	http.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {
 		w.Write([]byte("Awesome chat server based on go!"))
 	})
-	http.HandleFunc("/ws", wsHandler)
+	http.HandleFunc("/ws/conn", wsNewConn)
+	http.HandleFunc("/ws/chat", wsNewChat)
 }
 
-func wsHandler(w http.ResponseWriter, r *http.Request) {
+func wsNewConn(w http.ResponseWriter, r *http.Request) {
+	username := r.URL.Query().Get("username")
+	if username == "" {
+		username = "anonymos"
+	}
+	login := r.URL.Query().Get("login")
+	if login == "" {
+		login = "anonymos"
+	}
+	chatName := r.URL.Query().Get("chatname")
+	if chatName == "" {
+		chatName = "public"
+	}
 	ws, err := websocket.Upgrade(w, r, nil, 1024, 1024)
 	if _, ok := err.(websocket.HandshakeError); ok {
 		http.Error(w, "Not a websocket handshake", 400)
@@ -30,8 +43,8 @@ func wsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	usr := &User{
-		Login:"userlogin",
-		Username:"username",
+		Login: login,
+		Username: username,
 	}
 	cli := &client{
 		wsConn: ws,
@@ -39,9 +52,20 @@ func wsHandler(w http.ResponseWriter, r *http.Request) {
 		chat: Chatter,
 		send: make(chan []byte, 100),
 	}
-	cli.chat.join <- cli
-	go cli.read(Logger)
-	go cli.write(Logger)
+	chat{}.Connect(chatName, cli, Logger)
+}
+
+func wsNewChat(w http.ResponseWriter, r *http.Request) {
+	chatName := r.URL.Query().Get("name")
+	for name := range AllChats {
+		if name == chatName {
+			w.Write([]byte("Chat already exists"))
+			return
+		}
+	}
+	chat := NewChat(chatName)
+	go chat.Run(Logger)
+	w.Write([]byte("Chat "+ chatName + " created."))
 }
 
 func main() {

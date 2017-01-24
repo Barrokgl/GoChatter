@@ -19,6 +19,16 @@ type chat struct {
 	leave     chan *client
 }
 
+func (c chat) Connect(chatName string, cli *client, logger *log.Logger) {
+	for name, chat := range AllChats {
+		if chatName == name {
+			chat.join <- cli
+			go cli.read(logger)
+			go cli.write(logger)
+		}
+	}
+}
+
 func (c *chat) Run(logger *log.Logger) {
 	for {
 		select {
@@ -32,10 +42,10 @@ func (c *chat) Run(logger *log.Logger) {
 				}
 			}
 		case ch := <-c.join:
-			logger.Println("user join: ", ch.Username)
+			logger.Println(c.name ," user join: ", ch.Username)
 			c.userConns[ch] = true
 		case ch := <-c.leave:
-			logger.Println("user leave: ", ch.Username)
+			logger.Println(c.name ," user leave: ", ch.Username)
 			delete(c.userConns, ch)
 			close(ch.send)
 		}
